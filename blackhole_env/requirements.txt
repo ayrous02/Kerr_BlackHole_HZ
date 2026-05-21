@@ -1,0 +1,4 @@
+numpy>=1.20
+scipy>=1.7
+# opcional — ray tracing alternativo (mais lento que Carter)
+# einsteinpy>=0.4.0
