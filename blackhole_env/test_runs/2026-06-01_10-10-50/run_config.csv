@@ -1,0 +1,12 @@
+param,value
+g_search_n,64
+mass_solar,1830000.0
+max_workers,1
+n_grid,80
+numeric_n_grid,24
+output_dir,None
+run_lsdplus_diagnose,True
+run_numeric,False
+run_paper_zoom,False
+shadow_backend,carter
+use_free_r,False
