@@ -1,10 +1,10 @@
-from black_sun_scenario import BlackSunScenario, REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL, equilibrium_temperature_K
-from lsdplus_flux import PAPER_HZ_ANCHORS
 from __future__ import annotations
+from black_sun_scenario import BlackSunScenario, REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL
+from lsdplus_flux import PAPER_HZ_ANCHORS
 from dataclasses import dataclass
 import math
 from typing import Callable
-from constants import SIGMA_SB
+from constants import SIGMA_SB, G
 from climate_params import ClimateParams
 
 
@@ -31,7 +31,8 @@ print("\n\nFluxo bolometrico calibrado: ", phi_flux)
 # função F(t) para o integrador de clima chamar a cada passo de tempo:
 flux_in = scenario_blackSun.flux_in(shadow_backend="carter")
 
-#temperatura de equilibrio
-T_eq = equilibrium_temperature_K(phi_flux)
-
+# temperatura de equilíbrio (eq. 3 Bakala: T = (Φ / 4σ)^1/4)
+T_eq = scenario_blackSun.equilibrium_temperature_K(phi_flux)
+#T_eq_2 = (phi_flux / (4.0 * SIGMA_SB)) ** 0.25
+print("\n\nTemperatura de equilibrio: ", T_eq, "K (", T_eq - 273.15, "°C)")
 # parametros iniciais do clima
