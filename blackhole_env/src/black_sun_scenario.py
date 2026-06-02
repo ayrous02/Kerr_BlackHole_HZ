@@ -26,7 +26,7 @@ from kerr_orbit import KerrOrbit
 
 
 # Bakala et al. (2020), Sec. 5 — ordem de grandeza para Terra na HZ.
-REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL = 1.63e8
+REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL = 1.64e8 #antes estava 1.63e8 e retornava False no survives_tidal_approximation
 
 
 @dataclass

@@ -192,72 +192,125 @@ PLANETS_BY_NAME = {
 }
 
 
-def main() -> None:
+def print_planet_catalog() -> None:
+    print("================= PLANETAS USADOS ===========================")
+    print(f"{'Planeta':<15} {'Massa [kg]':>14} {'Raio [m]':>12} {'rho [kg/m3]':>14} {'g [m/s2]':>12} {'v_escape [km/s]':>16}")
 
-    #começando pela Terra
-    target_T = PAPER_HZ_ANCHORS[1]
-    name = target_T[0]
-    r_orbit = target_T[1]
-    spin = target_T[2]
-    phi_ref = target_T[3]
-    g_ref = target_T[4]
+    for planet in PLANETS:
+        print(
+            f"{planet.name:<15} "
+            f"{planet.mass_kg:>14.3e} "
+            f"{planet.radius_m:>12.3e} "
+            f"{density_kg_m3(planet):>14.2f} "
+            f"{surface_gravity_m_s2(planet):>12.2f} "
+            f"{espace_velocity_m_s(planet) / 1000:>16.2f}"
+        )
 
 
-    print("================= ANCORA PRINCIPAL DO PAPER =========================== ")
-    print("ALVO 01: ", name)
-    print("R_ORB: ", r_orbit)
-    print("SPIN: ", spin)
-    print("Fluxo de referência: ", phi_ref)
-    print("g_max de referencia: ", g_ref)
-
-    scenario_BlackSun = BlackSunScenario(
-        mass_solar=REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL,
-        spin_a=spin,
-        r_orb_geom=r_orbit,
-    )
-
-    phi_flux = scenario_BlackSun.flux_W_m2(mode="hz_calibrated")
-
-    print_planet_all(
-        scenario_BlackSun,
-        EARTH_LIKE,
-        phi_flux
-    )
-
-    T_bakala = scenario_BlackSun.equilibrium_temperature_K(phi_flux)
-
-    print("\n")
-    print("================= CASOS RADIATIVOS =========================== ")
+def print_radiative_cases_table(phi_flux: float, T_bakala: float) -> None:
+    print("\nCasos radiativos (recebendo ", phi_flux ,"W/m2):")
+    print(f"{'Caso':<38} {'Planeta':<12} {'A':>6} {'eps':>6} {'T [K]':>10} {'T [°C]':>10} {'Delta Bakala':>14}")
 
     for case in RADIATIVE_CASES:
         planet = PLANETS_BY_NAME[case.planet_name]
+
         T = equilibrium_temperature_general(
             phi_flux,
-            albedo = case.albedo,
-            emissivity = case.emissivity,
-            redistribution_factor = case.redistribution_factor
+            albedo=case.albedo,
+            emissivity=case.emissivity,
+            redistribution_factor=case.redistribution_factor
         )
 
-        print("CASO: ", case.name)
-        print("Albedo: ", case.albedo)
-        print("Emissividade: ", case.emissivity)
-        print("T [K]: ", T)
-    
+        delta = T - T_bakala if case.name == "Blackbody Ideal" else float("nan")
+        delta_txt = f"{delta:.3f}" if case.name == "Blackbody Ideal" else "-"
 
-        densidade = density_kg_m3(planet)
-        gravidade = surface_gravity_m_s2(planet)
-        velocidade_escape = espace_velocity_m_s(planet)
-        print("Densidade: ", densidade)
-        print("Gravidade: ", gravidade)
-        print("Velocidade de espace: ", velocidade_escape)
-
-        if case.name == "blackbody_ideal":
-            print("Diferença para T_Bakala [K]:", T - T_bakala)
-    
-        print("\n\n")
+        print(
+            f"{case.name:<38} "
+            f"{planet.name:<12} "
+            f"{case.albedo:>6.3f} "
+            f"{case.emissivity:>6.3f} "
+            f"{T:>10.2f} "
+            f"{T - 273.15:>10.2f} "
+            f"{delta_txt:>14}"
+        )
 
 
-        
+def print_albedo_sweep(phi_flux: float) -> None:
+    print("\nVariação simples de albedo, sem atmosfera:")
+    print(f"{'Albedo':>8} {'T global [K]':>14} {'T hemisf. [K]':>14} {'T substelar [K]':>16}")
+
+    for albedo in [0.0, 0.1, 0.2, 0.3]:
+        T_global = equilibrium_temperature_general(
+            phi_flux,
+            albedo=albedo,
+            emissivity=1.0,
+            redistribution_factor=4.0
+        )
+
+        T_hotsky = equilibrium_temperature_general(
+            phi_flux,
+            albedo=albedo,
+            emissivity=1.0,
+            redistribution_factor=2.0
+        )
+
+        T_substellar = equilibrium_temperature_general(
+            phi_flux,
+            albedo=albedo,
+            emissivity=1.0,
+            redistribution_factor=1.0
+        )
+
+        print(
+            f"{albedo:>8.2f} "
+            f"{T_global:>14.2f} "
+            f"{T_hotsky:>14.2f} "
+            f"{T_substellar:>16.2f}"
+        )
+
+
+def main() -> None:
+    print_planet_catalog()
+
+    print("\n================= ÂNCORAS DO PAPER ===========================")
+
+    for name, r_orbit, spin, phi_ref, g_ref in PAPER_HZ_ANCHORS:
+
+        scenario_black_sun = BlackSunScenario(
+            mass_solar=REFERENCE_MIN_MASS_SOLAR_FOR_TIDAL,
+            spin_a=spin,
+            r_orb_geom=r_orbit,
+        )
+
+        phi_flux = scenario_black_sun.flux_W_m2(mode="hz_calibrated")
+        T_bakala = scenario_black_sun.equilibrium_temperature_K(phi_flux)
+
+        roche_margin = scenario_black_sun.roche_margin_ratio(
+            EARTH_LIKE.mass_kg,
+            EARTH_LIKE.radius_m
+        )
+
+        survives_tidal = scenario_black_sun.survives_tidal_approximation(
+            EARTH_LIKE.mass_kg,
+            EARTH_LIKE.radius_m
+        )
+
+        print("\n--------------------------------------------------------------")
+        print(f"Âncora: {name}")
+        print(f"R_orb [GM/c²]: {r_orbit:.6f}")
+        print(f"Spin a*: {spin:.12f}")
+        print(f"Fluxo CMB calibrado [W/m²]: {phi_flux:.2f} | referência paper: {phi_ref:.2f}")
+        print(f"g_max referência paper: {g_ref:.2f}")
+        print(f"Raio orbital [m]: {scenario_black_sun.orbit_radius_si_m():.3e}")
+        print(f"Dilatação temporal gamma: {scenario_black_sun.time_dilation_gamma():.2f}")
+        print(f"Margem de Roche [R_orb/R_t]: {roche_margin:.4f}")
+        print(f"Sobrevive à aproximação tidal? {survives_tidal}")
+        print(f"T_Bakala corpo negro [K]: {T_bakala:.2f}")
+        print(f"T_Bakala corpo negro [°C]: {T_bakala - 273.15:.2f}")
+
+        print_albedo_sweep(phi_flux)
+        print_radiative_cases_table(phi_flux, T_bakala)
+
 
 if __name__ == "__main__":
     main()
