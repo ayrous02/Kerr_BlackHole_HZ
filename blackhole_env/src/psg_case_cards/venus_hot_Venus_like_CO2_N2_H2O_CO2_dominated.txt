@@ -1,0 +1,25 @@
+CASE ID: venus_hot_Venus_like_CO2_N2_H2O_CO2_dominated
+Anchor Bakala: venus_hot
+Planet: Venus-like
+Atmosphere candidate: CO2_N2_H2O
+Mixture: CO2_dominated
+Climate priority: média
+
+=== Values to enter in PSG ===
+Surface / atmospheric temperature [K]: 316.043
+Surface pressure [bar]: 2.000
+Gravity [m/s2]: 8.86889
+Mean molar mass [g/mol]: 42.31041
+Albedo assumed: 0.35000
+Emissivity assumed: 0.75000
+
+Molecular abundances:
+  CO2: 0.90000000
+  N2: 0.09000000
+  H2O: 0.01000000
+
+Scientific note:
+Cenário CO2-dominante na âncora venus_hot; bom para testar efeito estufa e bandas fortes de CO2. T_eq_atm=316.04 K.
+
+Important limitation:
+This is a simplified atmosphere derived from the Black Sun pipeline. The incident source in Bakala is blueshifted CMB, not a standard stellar spectrum. Use PSG first to inspect spectral features, not as final proof of atmospheric stability.

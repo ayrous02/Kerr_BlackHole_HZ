@@ -9,6 +9,7 @@ from typing import Callable
 from constants import SIGMA_SB, G
 from climate_params import ClimateParams
 
+import csv
 
 @dataclass(frozen=True)
 class PlanetParams:
@@ -192,6 +193,156 @@ PLANETS_BY_NAME = {
 }
 
 
+# interpretações
+def classify_temperature_K(T: float) -> str:
+    """
+    Classificação simples da temperatura média global.
+    Não é uma avaliação completa de habitabilidade, apenas um diagnóstico térmico.
+    """
+    if T < 250.0:
+        return "muito frio"
+    if T < 273.15:
+        return "frio, abaixo do ponto de congelamento da água"
+    if T <= 310.0:
+        return "temperado, compatível com água líquida em princípio"
+    if T <= 373.15:
+        return "quente, mas ainda abaixo da ebulição da água a 1 atm"
+    return "muito quente, acima da faixa clássica de água líquida"
+
+
+def compute_radiative_temperatures(phi_flux: float) -> dict[str, float]:
+    """
+    Calcula a temperatura de cada caso radiativo para o fluxo da âncora atual.
+    Retorna um dicionário:
+    {
+        "Blackbody Ideal": T,
+        "earth_effective_temperature": T,
+        ...
+    }
+    """
+    temperatures = {}
+
+    for case in RADIATIVE_CASES:
+        T = equilibrium_temperature_general(
+            phi_flux,
+            albedo=case.albedo,
+            emissivity=case.emissivity,
+            redistribution_factor=case.redistribution_factor
+        )
+
+        temperatures[case.name] = T
+
+    return temperatures
+
+def interpret_anchor(
+    anchor_name: str,
+    phi_flux: float,
+    scenario: BlackSunScenario,
+    T_bakala: float,
+    radiative_temperatures: dict[str, float],
+    reference_planet: PlanetParams = EARTH_LIKE,
+) -> None:
+    roche_margin = scenario.roche_margin_ratio(
+        reference_planet.mass_kg,
+        reference_planet.radius_m
+    )
+
+    survives_tidal = scenario.survives_tidal_approximation(
+        reference_planet.mass_kg,
+        reference_planet.radius_m
+    )
+
+    print("\n================= INTERPRETAÇÃO DA ÂNCORA =================")
+
+    print(f"Âncora analisada: {anchor_name}")
+    print(f"Fluxo recebido do CMB blueshiftado: {phi_flux:.2f} W/m²")
+    print(f"Temperatura de corpo negro ideal: {T_bakala:.2f} K ({T_bakala - 273.15:.2f} °C)")
+    print(f"Classificação térmica do corpo negro: {classify_temperature_K(T_bakala)}")
+
+    if survives_tidal:
+        print(
+            f"Marés: o planeta sobrevive na aproximação usada "
+            f"(margem de Roche = {roche_margin:.4f})."
+        )
+    else:
+        print(
+            f"Marés: o planeta NÃO sobrevive na aproximação usada "
+            f"(margem de Roche = {roche_margin:.4f})."
+        )
+
+    earth_eff = radiative_temperatures.get("earth_effective_temperature")
+    earth_greenhouse = radiative_temperatures.get("earth_surface_greenhouse_effective")
+    mars_like = radiative_temperatures.get("mars_like_radiative_case")
+    venus_like = radiative_temperatures.get("venus_greenhouse_effective")
+
+    if earth_eff is not None:
+        print(
+            f"Com albedo terrestre e sem efeito estufa efetivo, a temperatura cai para "
+            f"{earth_eff:.2f} K ({earth_eff - 273.15:.2f} °C), indicando o efeito resfriador "
+            f"da reflexão planetária."
+        )
+
+    if earth_greenhouse is not None:
+        print(
+            f"Com uma emissividade efetiva tipo Terra, a temperatura sobe para "
+            f"{earth_greenhouse:.2f} K ({earth_greenhouse - 273.15:.2f} °C), mostrando que "
+            f"a retenção radiativa pode deslocar o planeta para uma faixa mais quente."
+        )
+
+    if mars_like is not None:
+        print(
+            f"O caso radiativo tipo Marte resulta em {mars_like:.2f} K "
+            f"({mars_like - 273.15:.2f} °C), sugerindo uma atmosfera pouco eficiente em reter calor."
+        )
+
+    if venus_like is not None:
+        print(
+            f"O caso tipo Vênus resulta em {venus_like:.2f} K "
+            f"({venus_like - 273.15:.2f} °C), mostrando que baixa emissividade/forte efeito estufa "
+            f"pode superaquecer o planeta mesmo quando o fluxo orbital não é extremo."
+        )
+
+    
+    print("\nSíntese específica:")
+    if anchor_name == "mars_cold":
+        print(
+            "Esta âncora representa a borda fria da zona habitável do modelo. "
+            "Mesmo com o CMB blueshiftado fornecendo energia ao planeta, a temperatura de corpo negro "
+            "fica muito abaixo de 273 K. Isso sugere que, sem um efeito estufa forte, o planeta tenderia "
+            "a permanecer congelado. O caso tipo Vênus mostra que uma atmosfera extremamente opaca ao "
+            "infravermelho poderia aquecer muito o planeta, mas esse é um cenário limite e ainda não "
+            "representa uma atmosfera fisicamente modelada."
+        )
+
+    elif anchor_name == "earth":
+        print(
+            "Esta âncora reproduz o ponto intermediário do paper, com fluxo equivalente ao recebido pela Terra. "
+            "O corpo negro ideal fica em torno de 278 K, próximo ao valor de referência de Bakala. "
+            "Quando se adiciona albedo terrestre, a temperatura cai abaixo do congelamento, mas com uma "
+            "emissividade efetiva tipo Terra ela sobe para aproximadamente 288 K. Isso mostra que esta "
+            "âncora é a mais parecida com uma situação terrestre simplificada."
+        )
+
+    elif anchor_name == "venus_hot":
+        print(
+            "Esta âncora representa a borda quente da zona habitável do modelo. "
+            "O corpo negro ideal já fica acima de 327 K, indicando um ambiente quente. "
+            "Com albedo terrestre e sem efeito estufa efetivo, a temperatura ainda permanece moderada, "
+            "mas com retenção radiativa tipo Terra ela sobe bastante. O caso tipo Vênus entra em regime "
+            "extremamente quente, sugerindo risco de superaquecimento caso a atmosfera seja muito eficiente "
+            "em reter radiação infravermelha."
+        )
+
+    else:
+        print(
+            "Nesta etapa, a âncora define quanta energia chega ao planeta; os casos radiativos mostram "
+            "como albedo e emissividade modificam a temperatura média. Ainda não é um modelo climático "
+            "completo, pois não inclui dinâmica atmosférica, composição química detalhada, pressão, "
+            "circulação ou variação temporal."
+        )
+
+
+
 def print_planet_catalog() -> None:
     print("================= PLANETAS USADOS ===========================")
     print(f"{'Planeta':<15} {'Massa [kg]':>14} {'Raio [m]':>12} {'rho [kg/m3]':>14} {'g [m/s2]':>12} {'v_escape [km/s]':>16}")
@@ -207,22 +358,29 @@ def print_planet_catalog() -> None:
         )
 
 
-def print_radiative_cases_table(phi_flux: float, T_bakala: float) -> None:
-    print("\nCasos radiativos (recebendo ", phi_flux ,"W/m2):")
-    print(f"{'Caso':<38} {'Planeta':<12} {'A':>6} {'eps':>6} {'T [K]':>10} {'T [°C]':>10} {'Delta Bakala':>14}")
+def print_radiative_cases_table(
+    phi_flux: float,
+    T_bakala: float,
+    radiative_temperatures: dict[str, float],
+) -> None:
+    print(f"\nCasos radiativos recebendo {phi_flux:.2f} W/m²:")
+    print(
+        f"{'Caso':<38} "
+        f"{'Planeta':<12} "
+        f"{'A':>6} "
+        f"{'eps':>6} "
+        f"{'T [K]':>10} "
+        f"{'T [°C]':>10} "
+        f"{'Delta Bakala':>14}"
+    )
 
     for case in RADIATIVE_CASES:
         planet = PLANETS_BY_NAME[case.planet_name]
+        T = radiative_temperatures[case.name]
 
-        T = equilibrium_temperature_general(
-            phi_flux,
-            albedo=case.albedo,
-            emissivity=case.emissivity,
-            redistribution_factor=case.redistribution_factor
-        )
-
-        delta = T - T_bakala if case.name == "Blackbody Ideal" else float("nan")
-        delta_txt = f"{delta:.3f}" if case.name == "Blackbody Ideal" else "-"
+        delta_txt = "-"
+        if case.name == "Blackbody Ideal":
+            delta_txt = f"{T - T_bakala:.3f}"
 
         print(
             f"{case.name:<38} "
@@ -272,6 +430,8 @@ def print_albedo_sweep(phi_flux: float) -> None:
 def main() -> None:
     print_planet_catalog()
 
+    results = []  # fica FORA do loop
+
     print("\n================= ÂNCORAS DO PAPER ===========================")
 
     for name, r_orbit, spin, phi_ref, g_ref in PAPER_HZ_ANCHORS:
@@ -309,8 +469,63 @@ def main() -> None:
         print(f"T_Bakala corpo negro [°C]: {T_bakala - 273.15:.2f}")
 
         print_albedo_sweep(phi_flux)
-        print_radiative_cases_table(phi_flux, T_bakala)
 
+        radiative_temperatures = compute_radiative_temperatures(phi_flux)
+
+        print_radiative_cases_table(
+            phi_flux=phi_flux,
+            T_bakala=T_bakala,
+            radiative_temperatures=radiative_temperatures,
+        )
+
+        interpret_anchor(
+            anchor_name=name,
+            phi_flux=phi_flux,
+            scenario=scenario_black_sun,
+            T_bakala=T_bakala,
+            radiative_temperatures=radiative_temperatures,
+        )
+
+        for case in RADIATIVE_CASES:
+            planet = PLANETS_BY_NAME[case.planet_name]
+            T = radiative_temperatures[case.name]
+
+            results.append({
+                "anchor": name,
+                "r_orb_GM_c2": r_orbit,
+                "spin": spin,
+                "phi_flux_W_m2": phi_flux,
+                "phi_ref_W_m2": phi_ref,
+                "g_ref": g_ref,
+                "orbit_radius_m": scenario_black_sun.orbit_radius_si_m(),
+                "time_dilation_gamma": scenario_black_sun.time_dilation_gamma(),
+                "roche_margin": roche_margin,
+                "survives_tidal": survives_tidal,
+                "T_bakala_K": T_bakala,
+                "T_bakala_C": T_bakala - 273.15,
+                "radiative_case": case.name,
+                "planet": planet.name,
+                "planet_mass_kg": planet.mass_kg,
+                "planet_radius_m": planet.radius_m,
+                "planet_density_kg_m3": density_kg_m3(planet),
+                "planet_gravity_m_s2": surface_gravity_m_s2(planet),
+                "planet_escape_velocity_km_s": espace_velocity_m_s(planet) / 1000,
+                "albedo": case.albedo,
+                "emissivity": case.emissivity,
+                "redistribution_factor": case.redistribution_factor,
+                "T_K": T,
+                "T_C": T - 273.15,
+                "thermal_classification": classify_temperature_K(T),
+            })
+
+    # fica FORA do loop das âncoras
+    with open("planet_modelling_results.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=results[0].keys())
+        writer.writeheader()
+        writer.writerows(results)
+
+    print("\nArquivo salvo: planet_modelling_results.csv")
+    print(f"Total de cenários salvos: {len(results)}")
 
 if __name__ == "__main__":
     main()

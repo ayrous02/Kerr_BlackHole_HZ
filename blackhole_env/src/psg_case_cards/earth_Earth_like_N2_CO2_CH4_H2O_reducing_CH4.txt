@@ -1,0 +1,26 @@
+CASE ID: earth_Earth_like_N2_CO2_CH4_H2O_reducing_CH4
+Anchor Bakala: earth
+Planet: Earth-like
+Atmosphere candidate: N2_CO2_CH4_H2O
+Mixture: reducing_CH4
+Climate priority: alta
+
+=== Values to enter in PSG ===
+Surface / atmospheric temperature [K]: 274.118
+Surface pressure [bar]: 1.000
+Gravity [m/s2]: 9.81977
+Mean molar mass [g/mol]: 28.91491
+Albedo assumed: 0.25000
+Emissivity assumed: 0.80000
+
+Molecular abundances:
+  N2: 0.84000000
+  CO2: 0.10000000
+  CH4: 0.05000000
+  H2O: 0.01000000
+
+Scientific note:
+Cenário redutor temperado na âncora earth; bom para testar CH4, CO2 e H2O. T_eq_atm=274.12 K. Atenção: CH4 pode ser vulnerável à fotólise UV.
+
+Important limitation:
+This is a simplified atmosphere derived from the Black Sun pipeline. The incident source in Bakala is blueshifted CMB, not a standard stellar spectrum. Use PSG first to inspect spectral features, not as final proof of atmospheric stability.

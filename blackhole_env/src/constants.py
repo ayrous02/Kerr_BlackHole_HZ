@@ -13,3 +13,8 @@ M_SUN = 1.98847e30              # kg
 FLUX_MARS = 589.0               # W m^-2
 FLUX_EARTH = 1366.0             # W m^-2
 FLUX_VENUS = 2611.0             # W m^-2
+
+
+# Constantes para serem utilizadas na modelagem atmosférica
+K_B = 1.380649e-23 
+AMU_TO_KG = 1.66053906660e-27

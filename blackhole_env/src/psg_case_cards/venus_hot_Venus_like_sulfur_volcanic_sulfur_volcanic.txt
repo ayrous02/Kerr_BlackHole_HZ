@@ -1,0 +1,27 @@
+CASE ID: venus_hot_Venus_like_sulfur_volcanic_sulfur_volcanic
+Anchor Bakala: venus_hot
+Planet: Venus-like
+Atmosphere candidate: sulfur_volcanic
+Mixture: sulfur_volcanic
+Climate priority: alta
+
+=== Values to enter in PSG ===
+Surface / atmospheric temperature [K]: 304.824
+Surface pressure [bar]: 1.000
+Gravity [m/s2]: 8.86889
+Mean molar mass [g/mol]: 40.93205
+Albedo assumed: 0.40000
+Emissivity assumed: 0.80000
+
+Molecular abundances:
+  CO2: 0.80000000
+  N2: 0.15000000
+  H2O: 0.03000000
+  SO2: 0.01000000
+  H2S: 0.01000000
+
+Scientific note:
+Cenário vulcânico/sulfurado na âncora venus_hot; bom para testar SO2, H2S, CO2 e aerossóis. T_eq_atm=304.82 K.
+
+Important limitation:
+This is a simplified atmosphere derived from the Black Sun pipeline. The incident source in Bakala is blueshifted CMB, not a standard stellar spectrum. Use PSG first to inspect spectral features, not as final proof of atmospheric stability.

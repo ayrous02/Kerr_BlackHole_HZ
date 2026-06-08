@@ -1,0 +1,25 @@
+CASE ID: venus_hot_Earth_like_N2_CO2_H2O_N2_CO2_H2O_baseline
+Anchor Bakala: venus_hot
+Planet: Earth-like
+Atmosphere candidate: N2_CO2_H2O
+Mixture: N2_CO2_H2O_baseline
+Climate priority: média
+
+=== Values to enter in PSG ===
+Surface / atmospheric temperature [K]: 312.035
+Surface pressure [bar]: 1.000
+Gravity [m/s2]: 9.81977
+Mean molar mass [g/mol]: 29.35365
+Albedo assumed: 0.30000
+Emissivity assumed: 0.85000
+
+Molecular abundances:
+  N2: 0.90000000
+  CO2: 0.09000000
+  H2O: 0.01000000
+
+Scientific note:
+Baseline de alto peso molecular na âncora venus_hot; bom para testar CO2 e H2O. T_eq_atm=312.04 K.
+
+Important limitation:
+This is a simplified atmosphere derived from the Black Sun pipeline. The incident source in Bakala is blueshifted CMB, not a standard stellar spectrum. Use PSG first to inspect spectral features, not as final proof of atmospheric stability.
